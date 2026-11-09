@@ -159,6 +159,7 @@ body.collapsed #side:not(:hover) .st,body.collapsed #side:not(:hover) .tag,body.
 
 /* ========== 原文 ========== */
 .ptitle{font-size:11.5px;color:var(--dim);margin:18px 0 8px;letter-spacing:.05em}
+.rawblock{margin-top:30px;padding-top:18px;border-top:1px solid var(--line)}
 .para{margin-bottom:13px;font-size:14px;line-height:1.85;color:var(--text)}
 .para .pn{color:var(--dim);font-size:10.5px;margin-right:8px;user-select:none}
 .para.hl{background:rgba(76,154,255,.08);outline:1px solid rgba(76,154,255,.25);border-radius:8px;
@@ -469,8 +470,8 @@ const BG = (function(){
       const lit = f && (isEx ? f.cens.has(i) : isP ? f.pas.has(i) : f.items.has(i));
       const col = isEx ? P.ring : isP ? P.passage : (P.item[bp.c[i]-1] || P.item[0]);
       const px = X(i), py = Y(i);
-      const covered = !lit && texts.length && inTexts(px, py);
-      if(isEx){
+      const covered = texts.length && inTexts(px, py);
+      if(isEx && !covered){
         const rr = lit ? 52 : 34;
         const gr = ctx.createRadialGradient(px, py, 0, px, py, rr);
         gr.addColorStop(0, rgba(col, (lit ? 0.13 : 0.05) * mul));
@@ -478,7 +479,7 @@ const BG = (function(){
         ctx.fillStyle = gr;
         ctx.beginPath(); ctx.arc(px, py, rr, 0, 6.2832); ctx.fill();
       }
-      ctx.fillStyle = rgba(col, lit ? CFG.focusAlpha : CFG.baseAlpha*dim*mul*(covered ? 0.15 : 1));
+      ctx.fillStyle = rgba(col, lit ? CFG.focusAlpha*(covered ? 0.28 : 1) : CFG.baseAlpha*dim*mul*(covered ? 0.15 : 1));
       ctx.beginPath();
       ctx.arc(px, py, isEx ? (lit ? 7.5 : 5.0) : isP ? (lit ? 4.0 : 2.8) : (lit ? 3.2 : 1.4), 0, 6.2832);
       ctx.fill();
@@ -622,7 +623,7 @@ function renderDetail(){
     <button class="tab ${state.view==='a'?'active':''}" data-v="a">原文</button>
     <button class="tab ${state.view==='trap'?'active':''}" data-v="trap">陷阱档案</button></div>`;
   let body = '';
-  if(state.view === 'q') body = qView(it);
+  if(state.view === 'q') body = qView(it, pass);
   if(state.view === 'a') body = aView(it, pass);
   if(state.view === 'trap') body = trapView();
   $('#content').innerHTML = `<div class="wrap ${state.view==='trap'?'wide':''}">${tabs}${body}</div>`;
@@ -631,16 +632,18 @@ function renderDetail(){
   if(window.__bgRedraw) window.__bgRedraw();
 }
 
-function qView(it){
+function qView(it, pass){
   const opts = it.options.map(o => `<button class="opt" data-k="${o.key}">
     <span class="k">${o.key}</span><span class="text">${esc(o.text)}</span></button>`).join('');
   const tags = `<span class="tag">${TYPES[it.tags.question_type]}</span>` +
     it.tags.skills.map(s=>`<span class="tag">${s}</span>`).join('') +
     it.tags.distractor_types.map(d=>`<span class="tag">${TRAPS[d]||d}</span>`).join('') +
     `<span class="tag">${'★'.repeat(it.tags.difficulty)}</span>`;
+  const raw = (pass ? pass.paragraphs : []).map((p, i) => `<div class="para"><span class="pn">P${i+1}</span>${esc(p)}</div>`).join('');
   return `<div class="tag-group">${tags}</div>
     <div class="stem">${esc(it.stem)}</div>
     <div class="options">${opts}</div>
+    <div class="rawblock"><div class="ptitle">原文 · ${pass ? pass.word_count : ''} 词</div>${raw}</div>
     <div id="res"></div>`;
 }
 
